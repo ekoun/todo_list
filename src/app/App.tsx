@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HomeScreen } from "./screens/HomeScreen";
 import { TaskDetailScreen } from "./screens/TaskDetailScreen";
@@ -10,6 +10,7 @@ import { SplashScreen } from "./screens/SplashScreen";
 import { AddTaskButton } from "./components/AddTaskButton";
 import { Navigation } from "./components/Navigation";
 import { AddTaskModal } from "./components/AddTaskModal";
+import { UpdateNotification } from "./components/UpdateNotification";
 import { useTheme } from "./hooks/useTheme";
 import { useCategories } from "./hooks/useCategories";
 import { useNotifications } from "./hooks/useNotifications";
@@ -53,7 +54,7 @@ export default function App() {
     setCurrentScreen("home");
   };
 
-  const handleToggleTask = (id: string) => {
+  const handleToggleTask = useCallback((id: string) => {
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
@@ -65,7 +66,20 @@ export default function App() {
           : task
       )
     );
-  };
+  }, []);
+
+  const handleSnoozeTask = useCallback((id: string) => {
+    setTasks((prev) =>
+      prev.map((task) => {
+        if (task.id !== id || !task.time) return task;
+        const [h, m] = task.time.split(":").map(Number);
+        const date = new Date();
+        date.setHours(h, m + 15, 0, 0);
+        const newTime = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+        return { ...task, time: newTime };
+      })
+    );
+  }, []);
 
   const handleDeleteTask = (id: string) => {
     setTasks((prev) => prev.filter((task) => task.id !== id));
@@ -91,10 +105,10 @@ export default function App() {
     setTasks((prev) => [...prev, task]);
   };
 
-  const handleTaskClick = (id: string) => {
+  const handleTaskClick = useCallback((id: string) => {
     setSelectedTaskId(id);
     setCurrentScreen("taskDetail");
-  };
+  }, []);
 
   const handleBackFromDetail = () => {
     setCurrentScreen("home");
@@ -105,6 +119,52 @@ export default function App() {
     setCurrentScreen(tab as Screen);
     if (tab !== "taskDetail") setSelectedTaskId(null);
   };
+
+  // ── PWA Action Handling (Interactive Notifications) ──
+  useEffect(() => {
+    const handleIncomingAction = (action: string | null, taskId: string | null) => {
+      if (!taskId) return;
+
+      if (action === "complete") {
+        handleToggleTask(taskId);
+      } else if (action === "snooze") {
+        handleSnoozeTask(taskId);
+      }
+      
+      handleTaskClick(taskId);
+      // Clean up URL without refreshing
+      window.history.replaceState({}, document.title, "/");
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "TASK_ACTION") {
+        handleIncomingAction(event.data.action, event.data.taskId);
+      } else if (event.data?.type === "OPEN_TASK") {
+        handleTaskClick(event.data.taskId);
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleMessage);
+    }
+
+    // Check URL params for actions from closed app notifications
+    const params = new URLSearchParams(window.location.search);
+    const urlAction = params.get("action");
+    const urlTaskId = params.get("taskId");
+    
+    if (urlTaskId) {
+      // Delay slightly to ensure splash screen or onboarding doesn't interfere
+      const timer = setTimeout(() => handleIncomingAction(urlAction, urlTaskId), 800);
+      return () => clearTimeout(timer);
+    }
+
+    return () => {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleMessage);
+      }
+    };
+  }, [handleToggleTask, handleSnoozeTask, handleTaskClick]);
 
   const selectedTask = selectedTaskId
     ? tasks.find((t) => t.id === selectedTaskId)
@@ -118,6 +178,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--bg-main)" }}>
+
+      {/* ── PWA Update Notification ── */}
+      <UpdateNotification />
 
       {/* ── Splash screen: shown on every cold start ── */}
       <AnimatePresence>

@@ -14,33 +14,58 @@ export function useNotifications(tasks: Task[]) {
   };
 
   useEffect(() => {
-    if (permission !== "granted") return;
+    if (permission !== "granted" || !("serviceWorker" in navigator)) return;
 
     const now = new Date();
     const timeouts: ReturnType<typeof setTimeout>[] = [];
 
-    tasks.forEach((task) => {
-      if (task.completed || !task.time) return;
+    // Use Service Worker registration for persistent notifications with actions
+    const scheduleNotifications = async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        tasks.forEach((task) => {
+          // Skip completed tasks or tasks without a time
+          if (task.completed || !task.time) return;
 
-      const [hours, minutes] = task.time.split(":").map(Number);
+          const [hours, minutes] = task.time.split(":").map(Number);
+          
+          // Target date: use deadline if available, otherwise today
+          const targetDate = task.deadline ? new Date(`${task.deadline}T00:00:00`) : new Date();
+          targetDate.setHours(hours, minutes, 0, 0);
 
-      // Schedule on the deadline date or today if no deadline
-      const targetDate = task.deadline ? new Date(`${task.deadline}T00:00:00`) : new Date();
-      targetDate.setHours(hours, minutes, 0, 0);
+          const delay = targetDate.getTime() - now.getTime();
 
-      const delay = targetDate.getTime() - now.getTime();
-
-      // Only schedule within the next 24 hours
-      if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
-        const timeout = setTimeout(() => {
-          new Notification(`⏰ ${task.title}`, {
-            body: task.description ?? `Heure prévue : ${task.time}`,
-            icon: "/icon.svg",
-          });
-        }, delay);
-        timeouts.push(timeout);
+          // Schedule only within the next 24 hours to avoid overcrowding timeouts
+          if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
+            const timeout = setTimeout(() => {
+              registration.showNotification(`⏰ ${task.title}`, {
+                body: task.description || `Il est l'heure ! (${task.time})`,
+                icon: "/icon.svg",
+                badge: "/icon.svg",
+                tag: `task-reminder-${task.id}`,
+                renotify: true,
+                data: { 
+                  taskId: task.id,
+                  type: "TASK_REMINDER"
+                },
+                actions: [
+                  { action: "complete", title: "Terminer" },
+                  { action: "snooze", title: "Reporter 15m" }
+                ],
+                vibrate: [200, 100, 200],
+                requireInteraction: true // Keep notification until user interacts
+              }).catch(err => console.warn("Failed to show notification:", err));
+            }, delay);
+            timeouts.push(timeout);
+          }
+        });
+      } catch (err) {
+        console.warn("Service worker not ready for notifications:", err);
       }
-    });
+    };
+
+    scheduleNotifications();
 
     return () => timeouts.forEach(clearTimeout);
   }, [tasks, permission]);
