@@ -196,7 +196,7 @@ export function AddTaskModal({ isOpen, onClose, onAdd, categories }: AddTaskModa
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     {priorities.map((p) => (
-                      <button
+                      <motion.button
                         key={p.value}
                         type="button"
                         onClick={() => setPriority(p.value)}
@@ -207,25 +207,29 @@ export function AddTaskModal({ isOpen, onClose, onAdd, categories }: AddTaskModa
                           color:
                             priority === p.value ? "var(--bg-main)" : "var(--text-secondary)",
                         }}
+                        whileTap={{ scale: 0.95 }}
+                        whileHover={{ scale: 1.02 }}
                       >
                         {p.label}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
 
                 {/* Submit */}
-                <button
+                <motion.button
                   type="submit"
                   disabled={!title.trim()}
-                  className="w-full py-4 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                  className="w-full py-4 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6 shadow-lg"
                   style={{
                     backgroundColor: "var(--accent-lime)",
                     color: "var(--bg-main)",
                   }}
+                  whileHover={title.trim() ? { scale: 1.01, filter: "brightness(1.1)" } : {}}
+                  whileTap={title.trim() ? { scale: 0.98 } : {}}
                 >
-                  Ajouter la tâche
-                </button>
+                  AJOUTER LA TÂCHE
+                </motion.button>
               </form>
             </div>
           </motion.div>

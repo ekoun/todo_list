@@ -92,7 +92,7 @@ export function HomeScreen({
         className="mb-5 flex items-center gap-2 flex-wrap"
       >
         {(["all", "active", "done"] as StatusFilter[]).map((s) => (
-          <button
+          <motion.button
             key={s}
             onClick={() => setStatusFilter(s)}
             className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
@@ -102,9 +102,11 @@ export function HomeScreen({
               color:
                 statusFilter === s ? "var(--bg-main)" : "var(--text-secondary)",
             }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
           >
             {s === "all" ? "Toutes" : s === "active" ? "À faire" : "Terminées"}
-          </button>
+          </motion.button>
         ))}
       </motion.div>
 

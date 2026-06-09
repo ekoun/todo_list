@@ -334,13 +334,15 @@ export function ProfileScreen({
             </span>
           )}
           {permission === "default" && (
-            <button
+            <motion.button
               onClick={onRequestPermission}
-              className="text-xs px-3 py-1.5 rounded-xl font-medium transition-all"
+              className="text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-sm"
               style={{ backgroundColor: "var(--accent-lime)", color: "var(--bg-main)" }}
+              whileHover={{ scale: 1.02, filter: "brightness(1.1)" }}
+              whileTap={{ scale: 0.95 }}
             >
-              Activer
-            </button>
+              ACTIVER
+            </motion.button>
           )}
         </div>
       </motion.div>
@@ -448,7 +450,7 @@ export function ProfileScreen({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <button
+          <motion.button
             onClick={() => exportJSON(tasks)}
             disabled={tasks.length === 0}
             className="flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-medium transition-all disabled:opacity-40"
@@ -457,11 +459,13 @@ export function ProfileScreen({
               borderColor: "var(--border-subtle)",
               color: "var(--text-primary)",
             }}
+            whileHover={tasks.length > 0 ? { scale: 1.01, backgroundColor: "var(--bg-surface)" } : {}}
+            whileTap={tasks.length > 0 ? { scale: 0.98 } : {}}
           >
             <Download className="w-4 h-4" />
             JSON
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => exportCSV(tasks)}
             disabled={tasks.length === 0}
             className="flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-medium transition-all disabled:opacity-40"
@@ -470,10 +474,12 @@ export function ProfileScreen({
               borderColor: "var(--border-subtle)",
               color: "var(--text-primary)",
             }}
+            whileHover={tasks.length > 0 ? { scale: 1.01, backgroundColor: "var(--bg-surface)" } : {}}
+            whileTap={tasks.length > 0 ? { scale: 0.98 } : {}}
           >
             <Download className="w-4 h-4" />
             CSV
-          </button>
+          </motion.button>
         </div>
         {tasks.length === 0 && (
           <p className="text-xs mt-2" style={{ color: "var(--text-disabled)" }}>
